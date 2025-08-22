@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h3>Scan a barcode</h3>
+    <button id="connectBtn">Connect</button>
+    <button id="disconnectBtn" disabled>Disconnect</button>
+    <pre id="log"></pre>
+
+    <script>
+      const log = document.getElementById('log');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+
+      let buffer = '';
+      let lastTime = Date.now();
+      const SCAN_GAP = 50; // ms between characters
+      const SCAN_TIMEOUT = 100;
+      let timer = null;
+      let isConnected = false;
+
+      function resetBuffer() {
+        buffer = '';
+      }
+
+      function onKeydown(e) {
+        const now = Date.now();
+        const timeDiff = now - lastTime;
+
+        if (timeDiff > SCAN_GAP) {
+          buffer = ''; // too slow, assume manual typing start
+        }
+
+        if (e.key === 'Enter') {
+          if (buffer.length > 2) {
+            log.textContent += `🧾 Scanned: ${buffer}\n`;
+          } else {
+            log.textContent += `⌨️ Manual Enter\n`;
+          }
+          resetBuffer();
+        } else if (e.key.length === 1) {
+          buffer += e.key;
+        }
+
+        lastTime = now;
+
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (buffer.length > 2) {
+            log.textContent += `🧾 Scanned (timeout): ${buffer}\n`;
+          }
+          resetBuffer();
+        }, SCAN_TIMEOUT);
+      }
+
+      connectBtn.addEventListener('click', () => {
+        if (!isConnected) {
+          window.addEventListener('keydown', onKeydown);
+          isConnected = true;
+          connectBtn.disabled = true;
+          disconnectBtn.disabled = false;
+          log.textContent += '✅ Listening for barcode scans...\n';
+        }
+      });
+
+      disconnectBtn.addEventListener('click', () => {
+        if (isConnected) {
+          window.removeEventListener('keydown', onKeydown);
+          isConnected = false;
+          connectBtn.disabled = false;
+          disconnectBtn.disabled = true;
+          log.textContent += '❌ Stopped listening for scans.\n';
+          resetBuffer();
+        }
+      });
+    </script>
+  </body>
+</html>

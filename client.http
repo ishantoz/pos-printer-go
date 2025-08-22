@@ -1,0 +1,16 @@
+POST /print HTTP/1.0
+Content-Type: application/json
+Content-Length: 204
+
+{
+  "label": "Widget SKU",
+  "content": "W12345",
+  "meta": {
+    "printer_ip": "192.168.1.100",
+    "printer_port": 9100,
+    "quantity": 5,
+    "barcode_width": 3,
+    "barcode_height": 100,
+    "height": 40
+  }
+}
