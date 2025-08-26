@@ -1,1 +1,1 @@
-go build -ldflags="-extldflags=-static" -o pos-printer.exe
+go build -o ./release/pos-printer.exe -ldflags="-extldflags=-static" ./cmd/pos-printer/main.go   

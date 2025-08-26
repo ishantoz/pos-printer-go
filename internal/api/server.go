@@ -2,8 +2,8 @@ package api
 
 import (
 	"pos-printer/internal/config"
-
-	"pos-printer/internal/api/handlers"
+	"pos-printer/internal/db"
+	printers "pos-printer/internal/printer"
 
 	// "pos-printer/internal/job"
 	// "pos-printer/internal/store"
@@ -13,12 +13,15 @@ import (
 )
 
 type Server struct {
-	echo *echo.Echo
+	echo       *echo.Echo
+	cfg        *config.Config
+	sqlite     *db.SQLite
+	posPrinter *printers.PosPrinter
 	// store     *store.Store
 	// processor *job.Processor
 }
 
-func NewServer() *Server {
+func NewServer(cfg *config.Config, sqlite *db.SQLite, posPrinter *printers.PosPrinter) *Server {
 	e := echo.New()
 
 	e.HideBanner = true
@@ -28,21 +31,21 @@ func NewServer() *Server {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
-	srv := &Server{echo: e}
+	srv := &Server{echo: e, cfg: cfg, sqlite: sqlite, posPrinter: posPrinter}
 	srv.registerRoutes()
 	return srv
 }
 
-func (s *Server) registerRoutes() {
-
-	// Health Check
-	s.echo.GET("/health", handlers.HealthCheckHandler)
-
-	// Barcode Print API
-	s.echo.POST("/barcode/print", handlers.EnqueueBarcodeHandler)
-	// s.echo.GET("/barcode/job-status/:id", jobBarcodeStatusHandler)
+func (server *Server) StartTLS() error {
+	return server.echo.StartTLS(
+		server.cfg.ServerConfig.Endpoint,
+		server.cfg.ServerConfig.CertPath,
+		server.cfg.ServerConfig.KeyPath,
+	)
 }
 
-func (s *Server) StartTLS(cfg *config.ServerConfig) error {
-	return s.echo.StartTLS(cfg.Endpoint, cfg.CertPath, cfg.KeyPath)
+func (server *Server) registerRoutes() {
+	server.echo.GET("/health", server.healthCheckHandler)
+	server.echo.POST("/barcode/print", server.printBarcodeHandler)
+	server.echo.GET("/barcode/job/:id", server.jobBarcodeHandler)
 }
