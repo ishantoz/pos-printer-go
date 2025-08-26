@@ -1,0 +1,56 @@
+# .air.toml for POS Printer project
+
+# Root working directory
+root = "."
+
+# Temporary directory for builds
+tmp_dir = "tmp"
+
+[build]
+# Command to run your app
+cmd = "go run ./cmd/pos-printer/main.go"
+
+# Binary name if you want to build first (optional)
+bin = "tmp/pos-printer"
+
+# Include arguments when running binary (optional)
+args_bin = []
+
+# File extensions to watch for changes
+include_ext = ["go", "tpl", "tmpl", "html"]
+
+# Directories to ignore
+exclude_dir = ["assets", "tmp", "vendor", "node_modules"]
+
+# Exclude test files
+exclude_regex = ["_test\\.go"]
+
+# Stop running old binary on build error
+stop_on_error = true
+
+# Automatically rerun binary after changes
+rerun = true
+
+[log]
+# Show log time
+time = true
+# Show all logs
+main_only = false
+silent = false
+
+[color]
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+# Clean tmp directory on exit
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = true
+keep_scroll = true
+
+[proxy]
+enabled = false

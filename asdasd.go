@@ -1,4 +1,4 @@
-package main
+package asdasd
 
 import (
 	"database/sql"
@@ -24,8 +24,11 @@ const (
 	MaxJobAttempts       = 3
 	WorkerCount          = 3
 	DBPath               = "jobs.db"
-
-	StaleThreshold = 10 * time.Minute
+	StaleThreshold       = 10 * time.Minute
+	Endpoint             = "https://localhost:8080"
+	Timeout              = 10 * time.Second
+	CertPath             = "./certs/cert.pem"
+	KeyPath              = "./certs/cert.key"
 )
 
 const (

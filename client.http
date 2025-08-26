@@ -1,16 +1,15 @@
-POST /print HTTP/1.0
+POST http://localhost:5000/print-barcode-labels HTTP/1.0
 Content-Type: application/json
 Content-Length: 204
 
 {
-  "label": "Widget SKU",
-  "content": "W12345",
-  "meta": {
-    "printer_ip": "192.168.1.100",
-    "printer_port": 9100,
-    "quantity": 5,
-    "barcode_width": 3,
-    "barcode_height": 100,
-    "height": 40
-  }
+  "vid":  "0x6ef0",
+  "pid": "0x6550",
+  "sizeX": 55,
+  "sizeY": 45,
+  "direction": 0,
+  "topText": "100tk",
+  "barcodeData": "AX2B2CL21LL2",
+  "printCount": 2
 }
+
