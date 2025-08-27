@@ -65,6 +65,10 @@ func NewSQLite(cfg *config.Config) (*SQLite, error) {
 	return sqlite, nil
 }
 
+func (s *SQLite) Close() error {
+	return s.db.Close()
+}
+
 func (s *SQLite) migrate() error {
 	stmts := []string{
 		BarcodeJobTableStmt,

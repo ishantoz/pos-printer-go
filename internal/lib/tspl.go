@@ -1,4 +1,4 @@
-package tspl
+package lib
 
 import (
 	"fmt"

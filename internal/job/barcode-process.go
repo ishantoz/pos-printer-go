@@ -7,12 +7,19 @@ import (
 )
 
 func (p *Processor) RequeueStaleBarcodeJobs() {
+	ticker := time.NewTicker(p.cfg.WorkerConfig.StaleInterval)
+	defer ticker.Stop()
+
 	for {
-		err := p.db.UpdateStaleBarcodeJobs()
-		if err != nil {
-			log.Printf("Error requeuing stale jobs: %v", err)
+		select {
+		case <-ticker.C:
+			if err := p.db.UpdateStaleBarcodeJobs(); err != nil {
+				log.Printf("Error requeuing stale jobs: %v", err)
+			}
+		case <-p.stopChan:
+			log.Println("Requeue worker stopping")
+			return
 		}
-		time.Sleep(p.cfg.WorkerConfig.StaleInterval)
 	}
 }
 

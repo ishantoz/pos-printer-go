@@ -8,6 +8,8 @@ import (
 	// "pos-printer/internal/job"
 	// "pos-printer/internal/store"
 
+	"context"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -17,8 +19,6 @@ type Server struct {
 	cfg        *config.Config
 	sqlite     *db.SQLite
 	posPrinter *printers.PosPrinter
-	// store     *store.Store
-	// processor *job.Processor
 }
 
 func NewServer(cfg *config.Config, sqlite *db.SQLite, posPrinter *printers.PosPrinter) *Server {
@@ -42,6 +42,10 @@ func (server *Server) StartTLS() error {
 		server.cfg.ServerConfig.CertPath,
 		server.cfg.ServerConfig.KeyPath,
 	)
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.echo.Shutdown(ctx)
 }
 
 func (server *Server) registerRoutes() {

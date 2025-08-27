@@ -23,11 +23,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"pos-printer/internal/api"
 	"pos-printer/internal/config"
@@ -37,34 +39,48 @@ import (
 )
 
 func main() {
+	// Load configuration
 	cfg := config.Load()
 
+	// Initialize SQLite database
 	sqlite, err := db.NewSQLite(cfg)
 	if err != nil {
 		log.Fatalf("failed to initialize SQLite database: %v", err)
 	}
+	defer sqlite.Close()
 
 	posPrinter := printer.NewPosPrinter()
+	defer posPrinter.Cleanup()
 
 	processor := job.NewProcessor(posPrinter, sqlite, cfg)
 	processor.StartWorkers()
+	defer processor.StopWorkers()
 
 	server := api.NewServer(cfg, sqlite, posPrinter)
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	// Start HTTPS server in a goroutine
 	go func() {
-		if err := server.StartTLS(); err != nil {
+		if err := server.StartTLS(); err != nil && err.Error() != "http: Server closed" {
 			log.Printf("server failed: %v", err)
 		}
 	}()
 
 	fmt.Printf("🚀 POS Printer Service started securely on https://localhost%s\n", cfg.ServerConfig.Endpoint)
 
+	// Wait for termination signal
 	<-sigChan
 	fmt.Println("\n🛑 Shutting down gracefully...")
 
-	posPrinter.Cleanup()
+	// Shutdown server with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("server shutdown error: %v", err)
+	}
+
 	fmt.Println("✅ Cleanup completed")
 }

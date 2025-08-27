@@ -8,6 +8,14 @@ import (
 	"github.com/google/gousb"
 )
 
+type usbWriter struct {
+	ep *gousb.OutEndpoint
+}
+
+func (w *usbWriter) Write(p []byte) (int, error) {
+	return w.ep.Write(p)
+}
+
 type PosPrinter struct {
 	ctx *gousb.Context
 }
@@ -32,13 +40,11 @@ func (p *PosPrinter) posPrinterContext(vidHexStr, pidHexStr string) (*gousb.Cont
 	_pid := gousb.ID(uint16(pid64))
 
 	ctx := gousb.NewContext()
-	// Note: ctx.Close() should be called by the caller when done with all device operations
 
 	return ctx, _vid, _pid, nil
 }
 
 func (p *PosPrinter) OpenPosPrinter(vidHexStr, pidHexStr string) (*gousb.Device, error) {
-	// If we don't have a context, create a new one
 	if p.ctx == nil {
 		ctx, _, _, err := p.posPrinterContext(vidHexStr, pidHexStr)
 		if err != nil {
@@ -47,7 +53,6 @@ func (p *PosPrinter) OpenPosPrinter(vidHexStr, pidHexStr string) (*gousb.Device,
 		p.ctx = ctx
 	}
 
-	// Parse VID/PID for device lookup
 	vid64, err := strconv.ParseUint(vidHexStr, 0, 16)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Vendor ID %q: %w", vidHexStr, err)
@@ -62,7 +67,6 @@ func (p *PosPrinter) OpenPosPrinter(vidHexStr, pidHexStr string) (*gousb.Device,
 
 	dev, err := p.ctx.OpenDeviceWithVIDPID(_vid, _pid)
 	if err != nil {
-		// If device opening fails, try to reset the context and retry once
 		if p.ctx != nil {
 			log.Printf("Failed to open device, resetting context and retrying: %v", err)
 			p.ResetContext()
@@ -86,12 +90,11 @@ func (p *PosPrinter) OpenPosPrinter(vidHexStr, pidHexStr string) (*gousb.Device,
 }
 
 func (p *PosPrinter) CheckPrinter(vidHexStr, pidHexStr string) error {
-	// Create a temporary context just for checking
 	ctx, vid, pid, err := p.posPrinterContext(vidHexStr, pidHexStr)
 	if err != nil {
 		return err
 	}
-	defer ctx.Close() // Close the temporary context
+	defer ctx.Close()
 
 	dev, err := ctx.OpenDeviceWithVIDPID(vid, pid)
 	if err != nil {
@@ -105,7 +108,38 @@ func (p *PosPrinter) CheckPrinter(vidHexStr, pidHexStr string) error {
 	return nil
 }
 
-// Close closes the USB context and cleans up resources
+func (p *PosPrinter) GetESCWriter(vidHexStr, pidHexStr string) (*usbWriter, *gousb.Device, error) {
+	dev, err := p.OpenPosPrinter(vidHexStr, pidHexStr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cfg, err := dev.Config(1)
+	if err != nil {
+		dev.Close()
+		return nil, nil, err
+	}
+
+	intf, err := cfg.Interface(0, 0)
+	if err != nil {
+		cfg.Close()
+		dev.Close()
+		return nil, nil, err
+	}
+
+	ep, err := intf.OutEndpoint(1)
+	if err != nil {
+		intf.Close()
+		cfg.Close()
+		dev.Close()
+		return nil, nil, err
+	}
+
+	writer := &usbWriter{ep: ep}
+
+	return writer, dev, nil
+}
+
 func (p *PosPrinter) Close() {
 	if p.ctx != nil {
 		p.ctx.Close()
@@ -113,17 +147,14 @@ func (p *PosPrinter) Close() {
 	}
 }
 
-// Cleanup should be called when the service shuts down to ensure proper cleanup
 func (p *PosPrinter) Cleanup() {
 	p.Close()
 }
 
-// IsReady checks if the printer context is initialized and ready
 func (p *PosPrinter) IsReady() bool {
 	return p.ctx != nil
 }
 
-// ResetContext forces a new USB context to be created (useful for recovery)
 func (p *PosPrinter) ResetContext() {
 	if p.ctx != nil {
 		p.ctx.Close()
