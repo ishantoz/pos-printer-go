@@ -108,7 +108,7 @@ func (p *PosPrinter) CheckPrinter(vidHexStr, pidHexStr string) error {
 	return nil
 }
 
-func (p *PosPrinter) GetESCWriter(vidHexStr, pidHexStr string) (*usbWriter, *gousb.Device, error) {
+func (p *PosPrinter) GetESCPOSWriter(vidHexStr, pidHexStr string) (*usbWriter, *gousb.Device, error) {
 	dev, err := p.OpenPosPrinter(vidHexStr, pidHexStr)
 	if err != nil {
 		return nil, nil, err
